@@ -1,0 +1,84 @@
+{
+  "name": "serverless-invoice-scanner",
+  "version": "1.0.0",
+  "description": "A serverless application for scanning and processing invoices using AWS AI/ML services",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && npm run install:backend && npm run install:frontend && npm run install:infrastructure",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "install:infrastructure": "cd infrastructure && npm install",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:infrastructure",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:infrastructure": "cd infrastructure && npm run build",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:infrastructure",
+    "test:unit": "npm run test:backend:unit && npm run test:frontend:unit",
+    "test:integration": "npm run test:backend:integration",
+    "test:e2e": "npm run test:e2e:run",
+    "test:backend": "cd backend && npm test",
+    "test:backend:unit": "cd backend && npm run test:unit",
+    "test:backend:integration": "cd backend && npm run test:integration",
+    "test:frontend": "cd frontend && npm test",
+    "test:frontend:unit": "cd frontend && npm run test:unit",
+    "test:infrastructure": "cd infrastructure && npm test",
+    "test:e2e:run": "cd tests/e2e && npm test",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:fix": "npm run lint:backend:fix && npm run lint:frontend:fix",
+    "lint:backend:fix": "cd backend && npm run lint:fix",
+    "lint:frontend:fix": "cd frontend && npm run lint:fix",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "deploy": "cd infrastructure && npm run deploy",
+    "deploy:dev": "cd infrastructure && npm run deploy:dev",
+    "deploy:prod": "cd infrastructure && npm run deploy:prod",
+    "destroy": "cd infrastructure && npm run destroy",
+    "synth": "cd infrastructure && npm run synth",
+    "diff": "cd infrastructure && npm run diff",
+    "bootstrap": "cd infrastructure && npm run bootstrap",
+    "clean": "npm run clean:backend && npm run clean:frontend && npm run clean:infrastructure",
+    "clean:backend": "cd backend && npm run clean",
+    "clean:frontend": "cd frontend && npm run clean",
+    "clean:infrastructure": "cd infrastructure && npm run clean"
+  },
+  "keywords": [
+    "serverless",
+    "aws",
+    "invoice",
+    "scanner",
+    "textract",
+    "lambda",
+    "api-gateway",
+    "s3",
+    "dynamodb"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.{json,md}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}
