@@ -21,8 +21,8 @@ const envConfig = {
   },
   prod: {
     stackNamePrefix: 'InvoiceScanner-Prod',
-    domainName: 'invoice-scanner.yourdomain.com', // Replace with your domain
-    certificateArn: 'arn:aws:acm:us-east-1:ACCOUNT:certificate/CERT-ID', // Replace with your cert
+    domainName: 'api.leslienarh.com',
+    certificateArn: undefined, // Will be created automatically
   },
 };
 

@@ -45,30 +45,48 @@ serverless-invoice-scanner/
 
 - Node.js 18+ and npm
 - AWS CLI configured with appropriate permissions
-- AWS CDK CLI installed globally
+- AWS CDK CLI installed globally: `npm install -g aws-cdk`
 - Git for version control
 
 ### Quick Start
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone git@github.com:tettehnarh/serverless_invoice_scanner.git
 cd serverless-invoice-scanner
 ```
 
 2. Install dependencies:
 ```bash
-npm install
+npm run install:all
 ```
 
-3. Deploy infrastructure:
+3. Configure AWS credentials:
 ```bash
-npm run deploy
+aws configure
 ```
 
-4. Start local development:
+4. Deploy to development:
 ```bash
-npm run dev
+./scripts/deploy.sh dev
+```
+
+5. Deploy to production:
+```bash
+./scripts/deploy.sh prod
+```
+
+### Local Development
+
+```bash
+# Start frontend development server
+npm run dev:frontend
+
+# Run backend tests
+npm run test:backend
+
+# Build all components
+npm run build
 ```
 
 ## 📖 Documentation
@@ -96,12 +114,30 @@ npm run test:e2e
 
 ## 🚀 Deployment
 
-The application uses GitHub Actions for CI/CD. Push to main branch triggers automatic deployment.
+### Automated Deployment (Recommended)
 
-Manual deployment:
+The application uses GitHub Actions for CI/CD:
+- Push to `main` branch → Deploy to production
+- Push to `develop` branch → Deploy to development
+- Pull requests → Run tests and security scans
+
+### Manual Deployment
+
 ```bash
-npm run deploy:prod
+# Deploy to development
+./scripts/deploy.sh dev
+
+# Deploy to production
+./scripts/deploy.sh prod
 ```
+
+### Domain Configuration
+
+The application is configured to use:
+- Production API: `api.leslienarh.com`
+- Development API: Auto-generated API Gateway URL
+
+See [Deployment Guide](docs/deployment.md) for detailed instructions.
 
 ## 💰 Cost Optimization
 
