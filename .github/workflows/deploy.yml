@@ -1,0 +1,214 @@
+name: Deploy Invoice Scanner
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  AWS_REGION: us-east-1
+  NODE_VERSION: '18'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install backend dependencies
+        run: cd backend && npm install
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Install infrastructure dependencies
+        run: cd infrastructure && npm install
+
+      - name: Lint backend code
+        run: cd backend && npm run lint
+
+      - name: Lint frontend code
+        run: cd frontend && npm run lint
+
+      - name: Run backend tests
+        run: cd backend && npm test
+
+      - name: Run frontend tests
+        run: cd frontend && npm test -- --coverage --watchAll=false
+
+      - name: Build backend
+        run: cd backend && npm run build
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+
+      - name: Build infrastructure
+        run: cd infrastructure && npm run build
+
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          npm install
+          cd backend && npm install
+          cd ../frontend && npm install
+          cd ../infrastructure && npm install
+
+      - name: Build backend
+        run: cd backend && npm run build
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+
+      - name: Build infrastructure
+        run: cd infrastructure && npm run build
+
+      - name: Bootstrap CDK (if needed)
+        run: cd infrastructure && npm run bootstrap
+        continue-on-error: true
+
+      - name: Deploy infrastructure
+        run: cd infrastructure && npm run deploy:dev
+
+      - name: Deploy frontend
+        run: |
+          # Get S3 bucket name from CDK outputs
+          BUCKET_NAME=$(aws cloudformation describe-stacks \
+            --stack-name InvoiceScanner-Dev-Frontend \
+            --query 'Stacks[0].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' \
+            --output text)
+          
+          # Sync frontend build to S3
+          aws s3 sync frontend/build/ s3://$BUCKET_NAME --delete
+          
+          # Get CloudFront distribution ID and invalidate cache
+          DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
+            --stack-name InvoiceScanner-Dev-Frontend \
+            --query 'Stacks[0].Outputs[?OutputKey==`DistributionId`].OutputValue' \
+            --output text)
+          
+          if [ ! -z "$DISTRIBUTION_ID" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id $DISTRIBUTION_ID \
+              --paths "/*"
+          fi
+
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          npm install
+          cd backend && npm install
+          cd ../frontend && npm install
+          cd ../infrastructure && npm install
+
+      - name: Build backend
+        run: cd backend && npm run build
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+
+      - name: Build infrastructure
+        run: cd infrastructure && npm run build
+
+      - name: Bootstrap CDK (if needed)
+        run: cd infrastructure && npm run bootstrap
+        continue-on-error: true
+
+      - name: Deploy infrastructure
+        run: cd infrastructure && npm run deploy:prod
+
+      - name: Deploy frontend
+        run: |
+          # Get S3 bucket name from CDK outputs
+          BUCKET_NAME=$(aws cloudformation describe-stacks \
+            --stack-name InvoiceScanner-Prod-Frontend \
+            --query 'Stacks[0].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' \
+            --output text)
+          
+          # Sync frontend build to S3
+          aws s3 sync frontend/build/ s3://$BUCKET_NAME --delete
+          
+          # Get CloudFront distribution ID and invalidate cache
+          DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
+            --stack-name InvoiceScanner-Prod-Frontend \
+            --query 'Stacks[0].Outputs[?OutputKey==`DistributionId`].OutputValue' \
+            --output text)
+          
+          if [ ! -z "$DISTRIBUTION_ID" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id $DISTRIBUTION_ID \
+              --paths "/*"
+          fi
+
+      - name: Run smoke tests
+        run: |
+          # Get API URL from CDK outputs
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name InvoiceScanner-Prod-Backend \
+            --query 'Stacks[0].Outputs[?OutputKey==`ApiUrl`].OutputValue' \
+            --output text)
+          
+          # Simple health check
+          curl -f $API_URL/health || exit 1
