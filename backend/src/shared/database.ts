@@ -128,7 +128,7 @@ export class InvoiceDatabase {
     const { limit = 20, nextToken, status } = query;
 
     try {
-      let queryParams: any = {
+      const queryParams: any = {
         TableName: this.tableName,
         KeyConditionExpression: 'PK = :pk',
         ExpressionAttributeValues: {
