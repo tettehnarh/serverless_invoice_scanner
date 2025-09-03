@@ -23,6 +23,11 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+            infrastructure/package-lock.json
 
       - name: Install dependencies
         run: |
@@ -101,6 +106,11 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+            infrastructure/package-lock.json
 
       - name: Install infrastructure dependencies
         run: cd infrastructure && npm install
